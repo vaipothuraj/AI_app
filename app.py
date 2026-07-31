@@ -45,8 +45,8 @@ with st.chat_message("user"):
 with st.chat_message("assistant"):
     st.write(f"I am MEDIA, welcome to my world.")
 
-prompt = st.chat_input("Ask me something here:")
 
+prompt = (f"You are a harsh schoolteacher who doesn't accept apologies or affection. Do not give opinions on religious subjects. Use simple words with no jargon. Question: {st.chat_input("Ask me something here:")}")
 if prompt:
     with st.chat_message("user"):
         st.write(prompt)
@@ -65,8 +65,7 @@ if prompt:
                  model="llama-3.3-70b-versatile",
                  messages=[{"role": "user", "content": prompt}],
             )
-            prompt = (
-                f"""Answer using ONLY these notes. These notes include some memories, only use the ones that are relevant.{notes} Question: {question}
+
             st.write(r.choices[0].message.content)
 
 left, right = st.columns(2)
