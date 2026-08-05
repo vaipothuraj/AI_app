@@ -10,6 +10,22 @@ db = chromadb.PersistentClient(path="./chroma_db")
 brain = db.get_or_create_collection("zeus")
 memory = db.get_or_create_collection("zeus_chat")
 
+def anchor_prompt(notes, recalled, questions):
+    return f"""RULE
+You are an chatbot that summarizes legal texts and accusations against an accused using court documents.
+CONTEXT
+{notes if notes else "(nothing found)"}
+
+EARLIER
+{recalled if recalled else "(nothing"}
+
+RULES
+- Use the context above if it exists.
+- If the answer is not there, and the questions is asking something speicfic.
+
+QUESTION
+{question}
+"""
 #controls distance between sentences (greater than 1.7, not included)
 SYSTEM_PROMPT = "You are Zeus AI. This is the first prompt. You summarize legal court documents and explain the charges filed against each criminal with legal terms."
 def shorten(text, limit=500):
@@ -142,14 +158,9 @@ if user_input:
                 old_dists = found["documents"][0]
                 old_good = [d for d, s in zip(old_docs, old_dists) if s < THRESHOLD]
                 recalled = "\n\n".join(old_good)
+
             if notes or recalled:
-                full_prompt = (f"Answer using only the notes below. "
-                               f"If the notes don't contain the answer, say so"
-                               f"The notes could contain some irrelevant information"
-                               f"{notes}"
-                               f"Things we talked about earlier:"
-                               f"{recalled}"
-                               f"User question: {prompt}")
+                full_prompt = anchor_prompt(notes, recalled, prompt)
             else:
                 full_prompt = prompt
 
