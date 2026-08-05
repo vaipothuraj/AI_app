@@ -9,7 +9,7 @@ import chromadb
 db = chromadb.PersistentClient(path="./chroma_db")
 brain = db.get_or_create_collection("zeus")
 memory = db.get_or_create_collection("zeus_chat")
-THRESHOLD = 1.5
+
 #controls distance between sentences (greater than 1.7, not included)
 SYSTEM_PROMPT = "You are Zeus AI. This is the first prompt. You summarize legal court documents and explain the charges filed against each criminal with legal terms."
 def shorten(text, limit=500):
@@ -37,6 +37,7 @@ def store_document(file):
     prefix = file.name.replace(" ", "_")
     brain.add(
         documents=chunks,
+        metadatas=[{"source": file.name,"chunk":i} for i in range(len(chunks))],
         ids=[f"{prefix}_chunk{i}" for i in range(len(chunks))],
     )
     return len(text), len(chunks)
@@ -61,6 +62,7 @@ with st.sidebar:
         name = st.text_input("What is your name?")
         sources = st.multiselect("Mood:", ["My first app", "My second app"])
         creativity = st.slider("Creativity:", 0.0, 1.0, 0.5)
+        THRESHOLD = st.slider("Threshold for accuracy:", 0.0, 3.0, 1.5)
         sass = st.slider("Sass",1.0,4.0, 2.0 )
         remember_documents = st.slider("How many chunks to remember", 0, 15, 5)
         remember = st.slider("Recent turns to keep", 0, 10, 3)
@@ -119,23 +121,26 @@ if user_input:
             st.write(answer)
         else:
             notes = ""
-            docs, dists, good = [], [], []
+            docs, dists, good, metas, used_sources = [], [], [], [], []
             if brain.count() > 0:
                 hits = brain.query(query_texts=[prompt], n_results=remember_documents)
                 docs = hits["documents"][0]
                 dists = hits["distances"][0]
-                good = [d for d, s in zip(docs, dists) if s < THRESHOLD]
-                notes = "\n\n".join(docs)
+                metas = hits["metadatas"][0]
+                for d, s, m in zip(docs, dists, metas):
+                    if s < THRESHOLD:
+                        good.append(d)
+                        used_sources.append(f"{m["source"]} (chunk {m["chunk"]})")
+                notes = "\n\n".join(good)
             docs, dists, good = [], [], []
             #2: Anything that is relevant to the old convo
-            found = memory.query(query_texts=[prompt], n_results=recall)
             recalled = ""
             old_docs, old_dists, old_good = [], [], []
             if recall > 0 and memory.count() > remember:
                 found = memory.query(query_texts=[prompt], n_results=recall)
                 old_docs = found["documents"][0]
                 old_dists = found["documents"][0]
-                old_good = [d for d, s in zip(docs, dists) if s < THRESHOLD]
+                old_good = [d for d, s in zip(old_docs, old_dists) if s < THRESHOLD]
                 recalled = "\n\n".join(old_good)
             if notes or recalled:
                 full_prompt = (f"Answer using only the notes below. "
@@ -147,13 +152,14 @@ if user_input:
                                f"User question: {prompt}")
             else:
                 full_prompt = prompt
+
             with st.expander("What I looked up"):
                 #1: Notes
                 st.caption("From your documents")
                 if docs:
-                    for d, s in zip(docs, dists):
+                    for d, s, m in zip(docs, dists, metas):
                         mark = "kept" if s < THRESHOLD else "dropped"
-                        st.text(f"{s:.3f} {mark} {d[:70]}")
+                        st.text(f"{s:.3f} {mark} {m['source']} {d[:70]}")
                 else:
                     st.text("nothing found")
                 #2: Recall next convos
@@ -197,6 +203,8 @@ if user_input:
                 )
                 answer = r.choices[0].message.content
                 st.write(answer)
+                if used_sources:
+                    st.caption("Sources: " + ", ".join(sorted(set(used_sources))))
 
         remember_exchange(prompt, answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
