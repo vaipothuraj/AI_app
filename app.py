@@ -6,6 +6,8 @@ from openai import OpenAI
 from doc_helper import read_file
 import chromadb
 
+#
+
 db = chromadb.PersistentClient(path="./chroma_db")
 brain = db.get_or_create_collection("zeus")
 memory = db.get_or_create_collection("zeus_chat")
@@ -21,10 +23,11 @@ EARLIER
 
 RULES
 - Use the context above if it exists.
-- If the answer is not there, and the questions is asking something speicfic.
+- If the answer is not there, and the questions is asking something specific.
+- After each fact, put the source number it came from, like [Source 1], when applicable.
 
 QUESTION
-{question}
+{questions}
 """
 #controls distance between sentences (greater than 1.7, not included)
 SYSTEM_PROMPT = "You are Zeus AI. This is the first prompt. You summarize legal court documents and explain the charges filed against each criminal with legal terms."
@@ -147,8 +150,7 @@ if user_input:
                     if s < THRESHOLD:
                         good.append(d)
                         used_sources.append(f"{m["source"]} (chunk {m["chunk"]})")
-                notes = "\n\n".join(good)
-            docs, dists, good = [], [], []
+                notes = "\n\n".join(f"[Source {i+1}] {d}" for i,d in enumerate(good))
             #2: Anything that is relevant to the old convo
             recalled = ""
             old_docs, old_dists, old_good = [], [], []
@@ -215,7 +217,8 @@ if user_input:
                 answer = r.choices[0].message.content
                 st.write(answer)
                 if used_sources:
-                    st.caption("Sources: " + ", ".join(sorted(set(used_sources))))
+                    for i, src in enumerate(used_sources):
+                        st.caption(f"Source {i+1}: {src}")
 
         remember_exchange(prompt, answer)
     st.session_state.messages.append({"role": "assistant", "content": answer})
