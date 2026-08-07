@@ -1,12 +1,12 @@
 
 [theme]
-base = "dark"
+base = "light"
 
-primaryColor = "#d43e33"
-backgroundColor = "#787d1b"
-secondaryBackgroundColor = "#a6ad13"
-textColor = "#EAEFF7"
-borderColor = "#2A3446"
+primaryColor = "#fcf003"
+backgroundColor = "#fcba03"
+secondaryBackgroundColor = "#966d03"
+textColor = "#2e2102"
+borderColor = "#6e5016"
 linkColor = "#7FD1C1"
 linkUnderline = true
 
@@ -15,8 +15,8 @@ codeTextColor = "#B8E1D9"
 dataframeBorderColor = "#2A3446"
 dataframeHeaderBackgroundColor = "#1B2233"
 
-font = "sans serif"
-headingFont = "serif"
+font = "times new roman"
+headingFont = "times new roman"
 codeFont = "monospace"
 baseFontSize = 16
 baseFontWeight = 400

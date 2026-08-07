@@ -6,6 +6,10 @@ from openai import OpenAI
 from doc_helper import read_file
 import chromadb
 
+#import zipfile
+import streamlit as st
+
+
 db = chromadb.PersistentClient(path="./chroma_db")
 brain = db.get_or_create_collection("zeus")
 memory = db.get_or_create_collection("zeus_chat")
@@ -22,8 +26,9 @@ EARLIER
 
 RULES
 - Use the context above if it exists.
+- Use the uploaded zip file as a guideline for the Us legislation, and associate aspects of the case files to this legislation.
 - If the answer is not there, and the questions is asking something specific, skip it and say so.
--After each fact, put the source number it came from, like [Source 1], when applicable
+-After each fact, put the specific index and page number of the legislative article you are referring to. 
 
 QUESTION
 {questions}
@@ -80,6 +85,7 @@ with st.sidebar:
     with st.form("settings"):
         SYSTEM_PROMPT+= st.text_input("Save custom instructions to the system prompt:")
         sources = st.multiselect("Mood:", ["My first app", "My second app"])
+        roles = st.multiselect("Roles:", ["Judge", "Defendant", "Prosecutor"])
         creativity = st.slider("Creativity:", 0.0, 1.0, 0.5)
         THRESHOLD = st.slider("Threshold for accuracy:", 0.0, 3.0, 1.5)
         remember_documents = st.slider("How many chunks to remember", 0, 15, 5)
